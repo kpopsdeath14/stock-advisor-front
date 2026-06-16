@@ -1,0 +1,14 @@
+.DS_Store
+
+# shadow-cljs / ClojureScript
+.shadow-cljs/
+node_modules/
+package-lock.json
+public/js/
+.clj-kondo/.cache/
+.lsp/
+
+# Python
+API-dev/__pycache__/
+API-dev/.env
+API-dev/*.pyc

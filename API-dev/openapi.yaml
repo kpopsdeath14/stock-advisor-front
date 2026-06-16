@@ -1,0 +1,237 @@
+openapi: 3.1.0
+info:
+  title: Investment recommendations API
+  description: 'Промежуточный слой: рекомендации (get_recommendation) и история цен
+    из CSV для графиков.'
+  version: 0.1.0
+paths:
+  /health:
+    get:
+      summary: Health
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Health Health Get
+  /api/v1/recommendation:
+    post:
+      summary: Recommendation
+      operationId: recommendation_api_v1_recommendation_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecommendationRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/stocks/{symbol}/price-history:
+    get:
+      summary: Price History
+      description: Читает ``data/{SYMBOL}.csv`` (регистр имени файла как в запросе).
+      operationId: price_history_api_v1_stocks__symbol__price_history_get
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Symbol
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceHistoryResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    PriceBar:
+      properties:
+        date:
+          type: string
+          format: date
+          title: Date
+        open:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Open
+        high:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: High
+        low:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Low
+        close:
+          type: number
+          title: Close
+        volume:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Volume
+      type: object
+      required:
+      - date
+      - close
+      title: PriceBar
+      description: Одна точка для графика (линия закрытия или свеча)
+    PriceHistoryResponse:
+      properties:
+        symbol:
+          type: string
+          title: Symbol
+        bars:
+          items:
+            $ref: '#/components/schemas/PriceBar'
+          type: array
+          title: Bars
+      type: object
+      required:
+      - symbol
+      - bars
+      title: PriceHistoryResponse
+    RecommendationRequest:
+      properties:
+        ticker:
+          type: string
+          title: Ticker
+          description: Тикер инструмента .CSV
+        risk_tolerance:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Risk Tolerance
+          description: 'Уровень риска: conservative | moderate | aggressive'
+        investment_horizon_months:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Investment Horizon Months
+          description: Горизонт инвестирования в месяцах
+        beta:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Beta
+          description: Бета к индексу
+        risk_aversion_a:
+          anyOf:
+          - type: number
+            exclusiveMinimum: 0.0
+          - type: 'null'
+          title: Risk Aversion A
+          description: Коэффициент неприятия риска A из модели или задаётся из risk_tolerance
+        risk_free_rate_annual:
+          anyOf:
+          - type: number
+            maximum: 0.5
+            minimum: 0.0
+          - type: 'null'
+          title: Risk Free Rate Annual
+          description: Безрисковая ставка (годовая)
+      type: object
+      required:
+      - ticker
+      title: RecommendationRequest
+      description: Запрос рекомендации от фронтенда
+    RecommendationResponse:
+      properties:
+        ticker:
+          type: string
+          title: Ticker
+        action:
+          type: string
+          title: Action
+        confidence:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Confidence
+        summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary
+        factors:
+          items:
+            type: string
+          type: array
+          title: Factors
+        raw:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Raw
+          description: Произвольный полезный payload от модели
+      type: object
+      required:
+      - ticker
+      - action
+      title: RecommendationResponse
+      description: Ответ ML-слоя — структура совпадает с контрактом get_recommendation.
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
